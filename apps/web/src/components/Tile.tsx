@@ -11,7 +11,7 @@ interface TileProps {
   tilt?: number;
   rotation?: number;
   owner?: Player;
-  predictionRolls?: number[]; // Thêm danh sách các số xúc xắc có thể đi vào ô này
+  predictionRolls?: number[];
 }
 
 const colorMap: Record<string, string> = {
@@ -23,6 +23,46 @@ const colorMap: Record<string, string> = {
   yellow: 'bg-[#FFD700]',     // Yellow
   green: 'bg-[#008000]',      // Green
   navy: 'bg-[#000080]',       // Navy
+};
+
+// Định nghĩa màu sắc kiến trúc 3D riêng biệt cho từng khu vực/nhóm đất
+const get3DHouseStyles = (colorGroup: string, isHotel: boolean) => {
+  if (isHotel) {
+    // Khách sạn hạng sang thiết kế độc bản theo khu vực
+    switch (colorGroup) {
+      case 'brown': return { top: 'bg-amber-800', front: 'bg-amber-900', side: 'bg-amber-950', border: 'border-amber-950' };
+      case 'sky': return { top: 'bg-sky-400', front: 'bg-sky-500', side: 'bg-sky-600', border: 'border-sky-700' };
+      case 'pink': return { top: 'bg-pink-400', front: 'bg-pink-500', side: 'bg-pink-600', border: 'border-pink-700' };
+      case 'orange': return { top: 'bg-orange-500', front: 'bg-orange-600', side: 'bg-orange-700', border: 'border-orange-850' };
+      case 'red': return { top: 'bg-red-600', front: 'bg-red-700', side: 'bg-red-800', border: 'border-red-900' };
+      case 'yellow': return { top: 'bg-yellow-400', front: 'bg-yellow-500', side: 'bg-yellow-600', border: 'border-yellow-700' };
+      case 'green': return { top: 'bg-green-700', front: 'bg-green-800', side: 'bg-green-900', border: 'border-green-950' };
+      case 'navy': return { top: 'bg-blue-800', front: 'bg-blue-900', side: 'bg-slate-900', border: 'border-slate-950' };
+      default: return { top: 'bg-rose-500', front: 'bg-rose-600', side: 'bg-rose-700', border: 'border-rose-800' };
+    }
+  }
+
+  // Nhà thường (Cấp 1-4) mang màu sắc/kiểu dáng đặc trưng của từng khu
+  switch (colorGroup) {
+    case 'brown': // Nhà gỗ mộc mạc cổ kính
+      return { top: 'bg-[#92400e]', front: 'bg-[#b45309]', side: 'bg-[#78350f]', border: 'border-[#451a03]' };
+    case 'sky': // Nhà ven biển hiện đại màu xanh da trời
+      return { top: 'bg-sky-300', front: 'bg-sky-400', side: 'bg-sky-500', border: 'border-sky-600' };
+    case 'pink': // Nhà cổ tích ngọt ngào màu hồng phấn
+      return { top: 'bg-pink-300', front: 'bg-pink-400', side: 'bg-pink-500', border: 'border-pink-600' };
+    case 'orange': // Nhà gạch nung truyền thống màu cam đất
+      return { top: 'bg-orange-400', front: 'bg-orange-500', side: 'bg-orange-600', border: 'border-orange-700' };
+    case 'red': // Biệt thự mái đỏ cao cấp
+      return { top: 'bg-red-400', front: 'bg-red-500', side: 'bg-red-600', border: 'border-red-755' };
+    case 'yellow': // Biệt thự màu kem nắng ấm áp
+      return { top: 'bg-yellow-250', front: 'bg-yellow-300', side: 'bg-yellow-400', border: 'border-yellow-500' };
+    case 'green': // Nhà sinh thái lá xanh mát mẻ
+      return { top: 'bg-emerald-400', front: 'bg-emerald-500', side: 'bg-emerald-600', border: 'border-emerald-700' };
+    case 'navy': // Penhouse kính cao cấp màu xanh biển sâu
+      return { top: 'bg-blue-600', front: 'bg-blue-700', side: 'bg-slate-800', border: 'border-slate-900' };
+    default:
+      return { top: 'bg-slate-300', front: 'bg-slate-400', side: 'bg-slate-500', border: 'border-slate-600' };
+  }
 };
 
 export const Tile: React.FC<TileProps> = ({ 
@@ -60,6 +100,9 @@ export const Tile: React.FC<TileProps> = ({
     // Chế độ 3D: Dựng đứng khối lập thể 3D thực thụ
     const isHotel = tile.houses === 5;
     const houseCount = isHotel ? 1 : tile.houses;
+    
+    // Lấy phong cách màu sắc 3D riêng cho từng khu đất
+    const colorClass = get3DHouseStyles(tile.colorGroup || 'default', isHotel);
 
     return (
       <div 
@@ -68,9 +111,6 @@ export const Tile: React.FC<TileProps> = ({
       >
         {Array.from({ length: houseCount }).map((_, i) => {
           const size = isHotel ? { w: 10, h: 10, d: 14 } : { w: 5, h: 5, d: 7 };
-          const colorClass = isHotel 
-            ? { top: 'bg-rose-500', front: 'bg-rose-600', side: 'bg-rose-700', border: 'border-rose-800' }
-            : { top: 'bg-emerald-400', front: 'bg-emerald-500', side: 'bg-emerald-600', border: 'border-emerald-700' };
 
           return (
             <div 
@@ -83,7 +123,7 @@ export const Tile: React.FC<TileProps> = ({
                 transform: 'translateZ(1px)',
               }}
             >
-              {/* Mặt trên */}
+              {/* Mặt trên (Mái nhà) */}
               <div 
                 className={`absolute inset-0 ${colorClass.top} border ${colorClass.border}`} 
                 style={{ transform: `translateZ(${size.d}px)` }}
