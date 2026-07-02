@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { Tile as TileType, Player } from '../types';
 import { Tile } from './Tile';
 
@@ -32,8 +32,8 @@ export const Board: React.FC<BoardProps> = ({
   children,
 }) => {
   return (
-    <div className="relative w-full max-w-[650px] aspect-square bg-[#0b1329] border-2 border-gold-600 rounded-lg p-1 shadow-2xl select-none">
-      <div className="grid grid-cols-11 grid-rows-11 gap-0.5 w-full h-full">
+    <div className="relative w-full max-w-[650px] aspect-square bg-[#cbd5e1] border-4 border-slate-300 rounded-3xl p-1 shadow-2xl select-none">
+      <div className="grid grid-cols-11 grid-rows-11 gap-0.5 w-full h-full rounded-2xl overflow-hidden bg-slate-200">
         {board.map((tile) => {
           const pos = getTileGridPosition(tile.index);
           const playersOnTile = players.filter((p) => p.position === tile.index && !p.isBankrupt);
@@ -57,7 +57,8 @@ export const Board: React.FC<BoardProps> = ({
           );
         })}
 
-        <div className="col-start-2 col-end-11 row-start-2 row-end-11 bg-[#0b1329] flex flex-col justify-between p-4 relative z-0">
+        {/* Center of the Board */}
+        <div className="col-start-2 col-end-11 row-start-2 row-end-11 bg-[#e8f5e9]/95 flex flex-col justify-between p-4 relative z-0 border border-slate-200 rounded-2xl m-0.5 shadow-inner">
           {children}
         </div>
       </div>
