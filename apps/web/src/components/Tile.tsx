@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Tile as TileType, Player } from '../types';
 import { PlayerToken } from './PlayerToken';
 
@@ -23,6 +23,17 @@ const colorMap: Record<string, string> = {
   yellow: 'bg-[#FFD700]',     // Yellow
   green: 'bg-[#008000]',      // Green
   navy: 'bg-[#000080]',       // Navy
+};
+
+const colorGroupHex: Record<string, string> = {
+  brown: 'bg-[#8B5A2B]',
+  sky: 'bg-[#87CEEB]',
+  pink: 'bg-[#FF69B4]',
+  orange: 'bg-[#FF8C00]',
+  red: 'bg-[#FF0000]',
+  yellow: 'bg-[#FFD700]',
+  green: 'bg-[#008000]',
+  navy: 'bg-[#000080]',
 };
 
 const get3DHouseStyles = (colorGroup: string, isHotel: boolean) => {
@@ -75,6 +86,9 @@ export const Tile: React.FC<TileProps> = ({
 }) => {
   const isCorner = tile.type === 'go' || tile.type === 'jail' || tile.type === 'freeparking' || tile.type === 'gotojail';
   
+  // Trạng thái hover để hiện tooltip cục bộ
+  const [localHover, setLocalHover] = useState(false);
+
   // Vẽ nhà hoặc khách sạn bằng khối hộp 3D lập thể hoặc chấm 2D phẳng
   const renderHouses3D = () => {
     if (tile.type !== 'property' || tile.houses === 0) return null;
@@ -183,6 +197,8 @@ export const Tile: React.FC<TileProps> = ({
   return (
     <div
       onClick={onClick}
+      onMouseEnter={() => setLocalHover(true)}
+      onMouseLeave={() => setLocalHover(false)}
       className={`relative border-2 flex flex-col justify-between p-1 bg-white select-none text-center cursor-pointer transition-all duration-150 shadow-sm
         ${isCorner ? 'aspect-square justify-center bg-slate-50/90' : 'aspect-[3/4]'}
         ${isSelectable ? 'ring-2 ring-emerald-500 hover:bg-slate-50' : 'hover:bg-slate-50/55'}
@@ -193,7 +209,7 @@ export const Tile: React.FC<TileProps> = ({
         borderColor: tile.ownerId && owner ? owner.avatarColor : '#e2e8f0',
       }}
     >
-      {/* Landing Prediction Badge (Hiển thị dự báo số điểm cần xúc xắc - tinh gọn cực tiểu) */}
+      {/* Landing Prediction Badge */}
       {predictionRolls.length > 0 && (
         <div 
           style={is3D ? { transform: `rotateX(${-tilt}deg) rotateZ(${-rotation}deg) translateZ(18px)`, transformStyle: 'preserve-3d' } : {}}
@@ -201,6 +217,68 @@ export const Tile: React.FC<TileProps> = ({
           title={`Tung được ${predictionRolls.join(', ')} để đi vào ô này`}
         >
           {predictionRolls.join('/')}
+        </div>
+      )}
+
+      {/* 3D FLOATING DETAILED TITLE DEED TOOLTIP (Khắc phục nhức mắt che màn hình) */}
+      {localHover && !isCorner && (
+        <div 
+          style={is3D ? { 
+            transform: `rotateX(${-tilt}deg) rotateZ(${-rotation}deg) translateZ(48px)`, 
+            transformStyle: 'preserve-3d' 
+          } : {}}
+          className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-44 bg-[#0f172a]/95 backdrop-blur border border-white/10 rounded-xl p-2.5 shadow-[0_15px_30px_rgba(0,0,0,0.6)] z-50 text-left flex flex-col gap-1.5 pointer-events-none"
+        >
+          {/* Header nhóm đất */}
+          {tile.colorGroup ? (
+            <div className={`h-4.5 w-full ${colorGroupHex[tile.colorGroup]} rounded-md flex items-center justify-center shadow-sm`}>
+              <span className="text-[7.5px] font-black text-white uppercase tracking-wider">BẰNG KHOÁN ĐẤT</span>
+            </div>
+          ) : (
+            <div className="bg-slate-800 h-4.5 w-full rounded-md flex items-center justify-center shadow-sm">
+              <span className="text-[7.5px] font-black text-white uppercase tracking-wider">
+                {tile.type === 'railroad' ? 'NHÀ GA SẮT' : 'TIỆN ÍCH DỊCH VỤ'}
+              </span>
+            </div>
+          )}
+          
+          <h4 className="text-[9px] font-black text-white leading-tight">{tile.name}</h4>
+          
+          <div className="text-[7.5px] text-slate-400 flex flex-col gap-0.5 border-t border-white/5 pt-1 mt-0.5">
+            <div className="flex justify-between">
+              <span>Giá mua:</span>
+              <span className="font-extrabold text-emerald-400">${tile.price}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Chủ sở hữu:</span>
+              <span className="font-black" style={{ color: owner?.avatarColor || '#94a3b8' }}>
+                {owner ? owner.name : 'Chưa có chủ'}
+              </span>
+            </div>
+            
+            {tile.type === 'property' && (
+              <div className="flex flex-col gap-0.5 mt-1 bg-white/5 p-1 rounded text-[7px] border border-white/5">
+                <div className="flex justify-between">
+                  <span>Thuê đất trống:</span>
+                  <span className="font-bold text-slate-300">${tile.rent[0]}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Có 1-4 Nhà:</span>
+                  <span className="font-bold text-slate-300">${tile.rent[1]} - ${tile.rent[4]}</span>
+                </div>
+                <div className="flex justify-between font-black text-rose-400">
+                  <span>Có Khách Sạn:</span>
+                  <span>${tile.rent[5]}</span>
+                </div>
+              </div>
+            )}
+            
+            {tile.type === 'railroad' && (
+              <p className="text-[6.5px] text-slate-400 italic mt-0.5 leading-normal">
+                Thuê: 1 ga ($25) đến 4 ga ($200).
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -228,14 +306,13 @@ export const Tile: React.FC<TileProps> = ({
         </span>
       </div>
 
-      {/* Owner & Price Info (Loại bỏ nhãn chữ đã mua giúp giảm rối mắt chữ) */}
+      {/* Owner & Price Info */}
       {!isCorner && (
         <div 
           style={is3D ? { transform: 'translateZ(1.5px)' } : {}}
           className="mt-0.5 text-[8px] font-extrabold flex flex-col items-center"
         >
           {tile.ownerId && owner ? (
-            /* Khi đã mua: Không hiển thị chữ, viền màu ô cờ đã là chỉ thị sở hữu hoàn hảo */
             tile.mortgaged ? (
               <span className="px-1 py-0.2 rounded text-[5px] bg-slate-400 text-white font-black uppercase">TC</span>
             ) : null

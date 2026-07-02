@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Tile as TileType, Player } from '../types';
 import { Tile } from './Tile';
 
@@ -26,7 +26,6 @@ export const getTileGridPosition = (index: number) => {
   return { gridRow: 1, gridColumn: 1 };
 };
 
-// Tính toán vị trí tương đối (%) của tâm ô cờ phục vụ cho Transform Origin trong góc nhìn thứ nhất (1P)
 const getTilePercentPosition = (index: number) => {
   const pos = getTileGridPosition(index);
   const x = ((pos.gridColumn - 0.5) / 11) * 100;
@@ -49,7 +48,7 @@ export const Board: React.FC<BoardProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('3D');
   
-  // Góc quay thủ công trong chế độ 3D tự do
+  // Góc quay tự do 3D (Được điều khiển bằng chuột kéo thả)
   const [tilt, setTilt] = useState(50);
   const [rotation, setRotation] = useState(-30);
 
@@ -58,6 +57,10 @@ export const Board: React.FC<BoardProps> = ({
   const [autoRotation, setAutoRotation] = useState(0);
   const [scale, setScale] = useState(1);
   const [origin, setOrigin] = useState('50% 50%');
+
+  // Trạng thái kéo chuột xoay bàn cờ
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0, tilt: 50, rotation: -30 });
 
   // Cập nhật camera bám sát theo vị trí người chơi hiện tại (3P hoặc 1P)
   useEffect(() => {
@@ -71,31 +74,80 @@ export const Board: React.FC<BoardProps> = ({
     if (!currentPlayer || currentPlayer.isBankrupt) return;
 
     const pos = currentPlayer.position;
-    
-    // Đặt Transform Origin vào đúng tâm ô của người chơi hiện tại
     setOrigin(getTilePercentPosition(pos));
 
-    // Tính toán góc xoay camera từ phía sau lưng quân cờ
     if (pos >= 0 && pos < 10) {
-      setAutoRotation(0); // Cạnh dưới nhìn lên
+      setAutoRotation(0);
     } else if (pos >= 10 && pos < 20) {
-      setAutoRotation(90); // Cạnh trái nhìn ngang
+      setAutoRotation(90);
     } else if (pos >= 20 && pos < 30) {
-      setAutoRotation(180); // Cạnh trên nhìn xuống
+      setAutoRotation(180);
     } else if (pos >= 30 && pos < 40) {
-      setAutoRotation(-90); // Cạnh phải nhìn sang
+      setAutoRotation(-90);
     }
 
     if (viewMode === '1P') {
-      // Góc nhìn thứ nhất (1P): Nghiêng sát mặt đất, phóng to cực đại để nhìn dọc đường phố
       setAutoTilt(78);
       setScale(2.5);
     } else {
-      // Góc nhìn thứ ba (3P): Cao hơn chút để nhìn bao quát
       setAutoTilt(60);
       setScale(1.2);
     }
   }, [viewMode, activePlayerIndex, players]);
+
+  // Xử lý sự kiện nhấn chuột để xoay 3D
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (viewMode !== '3D') return;
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      tilt: tilt,
+      rotation: rotation,
+    };
+  };
+
+  // Xử lý sự kiện kéo chuột
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || viewMode !== '3D') return;
+    const deltaX = e.clientX - dragStartRef.current.x;
+    const deltaY = e.clientY - dragStartRef.current.y;
+    
+    // Kéo ngang để xoay quanh trục Z, kéo dọc để thay đổi độ nghiêng X
+    const newRotation = dragStartRef.current.rotation + deltaX * 0.4;
+    const newTilt = Math.max(15, Math.min(75, dragStartRef.current.tilt - deltaY * 0.35));
+    
+    setRotation(newRotation);
+    setTilt(newTilt);
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsDragging(false);
+  };
+
+  // Xử lý sự kiện chạm màn hình trên thiết bị di động
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (viewMode !== '3D' || e.touches.length === 0) return;
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      tilt: tilt,
+      rotation: rotation,
+    };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || viewMode !== '3D' || e.touches.length === 0) return;
+    const deltaX = e.touches[0].clientX - dragStartRef.current.x;
+    const deltaY = e.touches[0].clientY - dragStartRef.current.y;
+    
+    const newRotation = dragStartRef.current.rotation + deltaX * 0.4;
+    const newTilt = Math.max(15, Math.min(75, dragStartRef.current.tilt - deltaY * 0.35));
+    
+    setRotation(newRotation);
+    setTilt(newTilt);
+  };
 
   const finalTilt = viewMode === '2D' ? 0 : (viewMode === '3P' || viewMode === '1P') ? autoTilt : tilt;
   const finalRotation = viewMode === '2D' ? 0 : (viewMode === '3P' || viewMode === '1P') ? autoRotation : rotation;
@@ -103,7 +155,7 @@ export const Board: React.FC<BoardProps> = ({
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-[650px] relative select-none">
-      {/* Điều khiển camera chuyên nghiệp */}
+      {/* Điều khiển camera thông minh */}
       <div className="flex justify-between items-center w-full px-4 py-2 bg-slate-900/90 border border-white/5 rounded-2xl text-xs gap-3 shadow-lg z-20">
         <div className="flex items-center gap-1.5">
           <span className="font-extrabold text-[10px] text-slate-400 uppercase tracking-wider">Góc nhìn:</span>
@@ -126,29 +178,9 @@ export const Board: React.FC<BoardProps> = ({
         </div>
 
         {viewMode === '3D' && (
-          <div className="flex items-center gap-3 flex-1 justify-end animate-fade-in">
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] text-slate-400 font-extrabold uppercase">Nghiêng:</span>
-              <input
-                type="range"
-                min="20"
-                max="70"
-                value={tilt}
-                onChange={(e) => setTilt(parseInt(e.target.value))}
-                className="w-14 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-              />
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] text-slate-400 font-extrabold uppercase">Xoay:</span>
-              <input
-                type="range"
-                min="-90"
-                max="90"
-                value={rotation}
-                onChange={(e) => setRotation(parseInt(e.target.value))}
-                className="w-14 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-              />
-            </div>
+          <div className="text-[8.5px] text-amber-400 font-bold uppercase tracking-wider animate-pulse flex items-center gap-1.5">
+            <span>🖱️</span>
+            <span>Nhấp & Kéo chuột để xoay bàn cờ tự do!</span>
           </div>
         )}
 
@@ -161,11 +193,19 @@ export const Board: React.FC<BoardProps> = ({
 
       {/* Perspective Container */}
       <div 
-        className="w-full relative transition-all duration-300 flex items-center justify-center"
+        className={`w-full relative transition-all duration-300 flex items-center justify-center
+          ${viewMode === '3D' ? 'cursor-grab active:cursor-grabbing' : ''}`}
         style={{
           perspective: is3D ? '1200px' : 'none',
           paddingBottom: is3D ? '60px' : '0px',
         }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUpOrLeave}
+        onMouseLeave={handleMouseUpOrLeave}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleMouseUpOrLeave}
       >
         <div 
           className="w-full aspect-square bg-[#cbd5e1] border-4 border-slate-300 rounded-3xl p-1 transition-all duration-700 ease-out"
