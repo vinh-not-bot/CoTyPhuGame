@@ -1116,7 +1116,7 @@ BEGIN
       v_redeem_cost INT := (v_price * 0.55)::int;
     BEGIN
       IF v_cash < v_redeem_cost THEN
-        RAISE EXCEPTION 'Không đủ tiền để giải chấp bất động sản này (Cần ' || v_redeem_cost::text || ')';
+        RAISE EXCEPTION 'Không đủ tiền để giải chấp bất động sản này (Cần %)', v_redeem_cost;
       END IF;
       v_cash := v_cash - v_redeem_cost;
       v_is_mortgaged := false;
