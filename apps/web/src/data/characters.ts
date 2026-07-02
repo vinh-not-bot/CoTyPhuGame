@@ -1,7 +1,17 @@
 /**
  * Hệ thống nhân vật nổi tiếng - Cờ Tỷ Phú Online
- * Mỗi nhân vật có avatar thực, 1 skill passive + 1 skill active (1 lần/trận)
+ * Mỗi nhân vật có 1 skill passive + 3 active skills (có thời gian hồi theo lượt)
  */
+
+export interface SkillDef {
+  id: string;
+  name: string;
+  desc: string;
+  icon: string;
+  type: 'attack' | 'utility' | 'defense';
+  cooldown: number; // số lượt hồi chiêu
+  vfx: 'fist' | 'beam' | 'shield';
+}
 
 export interface CharacterDef {
   id: string;
@@ -10,13 +20,11 @@ export interface CharacterDef {
   title: string;
   color: string;
   bgGradient: string;
-  avatarUrl: string;       // URL tới ảnh avatar trong /public/characters/
+  avatarUrl: string;
   passiveName: string;
   passiveDesc: string;
   passiveIcon: string;
-  activeName: string;
-  activeDesc: string;
-  activeIcon: string;
+  skills: SkillDef[]; // 3 Active skills
 }
 
 export const CHARACTERS: CharacterDef[] = [
@@ -31,9 +39,11 @@ export const CHARACTERS: CharacterDef[] = [
     passiveName: 'Ngoại Giao',
     passiveDesc: 'Giảm 20% tiền thuê đất phải trả',
     passiveIcon: '🤝',
-    activeName: 'Lật Kèo',
-    activeDesc: 'Đổ lại xúc xắc 1 lần trong trận',
-    activeIcon: '🎲',
+    skills: [
+      { id: 'huan_punch', name: 'Đấm Cướp Tiền', desc: 'Đấm cướp $100 của một đối thủ ngẫu nhiên', icon: '👊', type: 'attack', cooldown: 3, vfx: 'fist' },
+      { id: 'huan_shield', name: 'Vương Bài Tránh Thuế', desc: 'Bảo hộ bản thân khỏi thuế quốc gia trong 1 lượt', icon: '🛡️', type: 'defense', cooldown: 4, vfx: 'shield' },
+      { id: 'huan_beam', name: 'Hút Lộc Giang Hồ', desc: 'Hút $120 chia đều từ tất cả người chơi', icon: '💸', type: 'attack', cooldown: 5, vfx: 'beam' }
+    ]
   },
   {
     id: 'kha_banh',
@@ -46,9 +56,11 @@ export const CHARACTERS: CharacterDef[] = [
     passiveName: 'Tay Chơi',
     passiveDesc: 'Nhận $220 thay vì $200 khi qua GO',
     passiveIcon: '💰',
-    activeName: 'All-in',
-    activeDesc: 'Mua đất với giá giảm 25% (1 lần)',
-    activeIcon: '🃏',
+    skills: [
+      { id: 'banh_dance', name: 'Múa Quạt Ảo Ảnh', desc: 'Gây choáng đối thủ tiếp theo, họ phải đứng im 1 lượt', icon: '🪭', type: 'attack', cooldown: 4, vfx: 'fist' },
+      { id: 'banh_gold', name: 'Đua Xe Thu Thuế', desc: 'Dịch chuyển đến ô Thuế tiếp theo và cướp $150 từ Ngân hàng', icon: '🏍️', type: 'utility', cooldown: 5, vfx: 'beam' },
+      { id: 'banh_shield', name: 'Dân Chơi Không Sợ', desc: 'Bảo hộ không phải trả tiền thuê đất trong lượt tiếp theo', icon: '🛡️', type: 'defense', cooldown: 5, vfx: 'shield' }
+    ]
   },
   {
     id: 'donald_trump',
@@ -61,9 +73,11 @@ export const CHARACTERS: CharacterDef[] = [
     passiveName: 'Đế Chế BĐS',
     passiveDesc: 'Xây nhà rẻ hơn 10% chi phí',
     passiveIcon: '🏗️',
-    activeName: 'Art of the Deal',
-    activeDesc: 'Thu gấp 3 tiền thuê đất 1 lượt',
-    activeIcon: '📜',
+    skills: [
+      { id: 'trump_wall', name: 'Xây Vạn Lý Trường Thành', desc: 'Ngăn chặn bất kỳ ai đi qua ô đất của bạn trong 1 lượt', icon: '🧱', type: 'defense', cooldown: 4, vfx: 'shield' },
+      { id: 'trump_tax', name: 'Thuế Quan Trừng Phạt', desc: 'Phạt đối thủ đứng đầu $150 nộp vào tài khoản của bạn', icon: '📈', type: 'attack', cooldown: 3, vfx: 'beam' },
+      { id: 'trump_deal', name: 'Art of Deal', desc: 'Ép mua lại đất trống hoặc ga tàu của đối thủ với giá gốc x1.5', icon: '🤝', type: 'utility', cooldown: 6, vfx: 'fist' }
+    ]
   },
   {
     id: 'obama',
@@ -76,9 +90,11 @@ export const CHARACTERS: CharacterDef[] = [
     passiveName: 'Yes We Can',
     passiveDesc: 'Rút thẻ Cơ Hội/Khí Vận: nhận thêm $50',
     passiveIcon: '🗳️',
-    activeName: 'Cải Cách Thuế',
-    activeDesc: 'Miễn phí 1 lần nộp thuế',
-    activeIcon: '📋',
+    skills: [
+      { id: 'obama_reform', name: 'Cải Cách Y Tế', desc: 'Hồi phục tài chính: Tặng bạn $150 từ quỹ phúc lợi ngân hàng', icon: '🏥', type: 'utility', cooldown: 4, vfx: 'beam' },
+      { id: 'obama_peace', name: 'Ngoại Giao Hòa Bình', desc: 'Ngăn chặn mọi đòn tấn công cướp tiền từ người khác trong 2 lượt', icon: '🕊️', type: 'defense', cooldown: 5, vfx: 'shield' },
+      { id: 'obama_speech', name: 'Diễn Thuyết Hòa Hợp', desc: 'Khiến một đối thủ tự nguyện tặng bạn $80 tiền hỗ trợ', icon: '🎙️', type: 'attack', cooldown: 3, vfx: 'fist' }
+    ]
   },
   {
     id: 'do_mixi',
@@ -91,9 +107,11 @@ export const CHARACTERS: CharacterDef[] = [
     passiveName: 'Streamer Luck',
     passiveDesc: 'Đổ xúc xắc đôi: được cộng thêm 1 bước',
     passiveIcon: '🍀',
-    activeName: 'Donate Storm',
-    activeDesc: 'Lấy $100 từ mỗi người chơi khác',
-    activeIcon: '💸',
+    skills: [
+      { id: 'mixi_donate', name: 'Cơn Mưa Donate', desc: 'Kêu gọi donate từ tất cả người chơi khác, mỗi người gửi bạn $50', icon: '💸', type: 'attack', cooldown: 3, vfx: 'beam' },
+      { id: 'mixi_pat', name: 'Lương Lẹo Né Thuế', desc: 'Sử dụng kỹ năng né tránh đóng thuế 1 lần', icon: '🥋', type: 'defense', cooldown: 4, vfx: 'shield' },
+      { id: 'mixi_punch', name: 'Đấm Phát Chết Luôn', desc: 'Đấm gục 1 đối thủ ngẫu nhiên và cướp $120', icon: '👊', type: 'attack', cooldown: 4, vfx: 'fist' }
+    ]
   },
   {
     id: 'elon_musk',
@@ -106,9 +124,11 @@ export const CHARACTERS: CharacterDef[] = [
     passiveName: 'Innovation',
     passiveDesc: 'Sở hữu Tiện Ích: nhân x12 thay x10',
     passiveIcon: '⚡',
-    activeName: 'SpaceX Launch',
-    activeDesc: 'Dịch chuyển tới ô BĐS trống bất kỳ',
-    activeIcon: '🛸',
+    skills: [
+      { id: 'musk_rocket', name: 'Tên Lửa Starship', desc: 'Bay thẳng tới ô Cơ Hội hoặc Khí Vận ngẫu nhiên', icon: '🚀', type: 'utility', cooldown: 4, vfx: 'fist' },
+      { id: 'musk_doge', name: 'Doge Pump', desc: 'Đẩy giá đất bạn đang đứng lên gấp đôi trong 1 lượt', icon: '🐕', type: 'utility', cooldown: 5, vfx: 'beam' },
+      { id: 'musk_shield', name: 'Bảo Hộ CyberShield', desc: 'Tạo giáp chắn chặn 100% tiền phạt hoặc tiền thuê kế tiếp', icon: '🛡️', type: 'defense', cooldown: 4, vfx: 'shield' }
+    ]
   },
   {
     id: 'son_tung',
@@ -121,9 +141,11 @@ export const CHARACTERS: CharacterDef[] = [
     passiveName: 'Superstar',
     passiveDesc: 'Tự động thoát tù lần đầu tiên',
     passiveIcon: '⭐',
-    activeName: 'Sky Tour',
-    activeDesc: 'Bay thẳng tới GO và nhận $400',
-    activeIcon: '✈️',
+    skills: [
+      { id: 'tung_sky', name: 'Sky Tour Concert', desc: 'Mỗi người chơi phải mua vé xem ca nhạc trị giá $60 nộp cho bạn', icon: '🎤', type: 'attack', cooldown: 3, vfx: 'beam' },
+      { id: 'tung_fade', name: 'Chạy Ngay Đi', desc: 'Nhảy thẳng ra khỏi tù hoặc di chuyển ngẫu nhiên 5 bước', icon: '🏃', type: 'utility', cooldown: 4, vfx: 'fist' },
+      { id: 'tung_shield', name: 'Cơn Mưa Ngang Qua', desc: 'Tạo màng nước chắn bảo vệ bản thân khỏi mọi sự cố thuê đất trong lượt này', icon: '🌧️', type: 'defense', cooldown: 4, vfx: 'shield' }
+    ]
   },
   {
     id: 'jack_ma',
@@ -136,9 +158,11 @@ export const CHARACTERS: CharacterDef[] = [
     passiveName: 'Alibaba',
     passiveDesc: 'Mua BĐS từ Ngân hàng giảm 10%',
     passiveIcon: '🛒',
-    activeName: 'Đầu Tư Mạo Hiểm',
-    activeDesc: 'Thu gấp đôi tiền thuê toàn bộ đất trong 2 lượt',
-    activeIcon: '📈',
+    skills: [
+      { id: 'ma_invest', name: 'Đầu Tư Mạo Hiểm', desc: 'Dùng $100 đặt cược nhận ngẫu nhiên từ $0 đến $300 từ cổ phiếu', icon: '📈', type: 'utility', cooldown: 3, vfx: 'beam' },
+      { id: 'ma_influence', name: 'Ngoại Giao Alibaba', desc: 'Ép đối thủ phải giảm 30% tiền thuê đất khi bạn đi vào', icon: '🤝', type: 'defense', cooldown: 4, vfx: 'shield' },
+      { id: 'ma_strike', name: 'Độc Quyền Thương Mại', desc: 'Tấn công làm đóng băng 1 ô đất bất kỳ của đối thủ trong 1 vòng', icon: '🧊', type: 'attack', cooldown: 5, vfx: 'fist' }
+    ]
   },
 ];
 

@@ -58,7 +58,7 @@ interface GameStore {
   trades: Trade[];
   error: string | null;
   loading: boolean;
-  activeSkillUsed: boolean;
+  skillCooldowns: Record<string, number>;
   
   setUserName: (name: string) => void;
   setUserAvatarColor: (color: string) => void;
@@ -91,7 +91,7 @@ interface GameStore {
   rejectTrade: (tradeId: string) => Promise<void>;
   declareBankruptcy: () => Promise<void>;
   endTurn: () => Promise<void>;
-  activateActiveSkill: () => void;
+  castActiveSkill: (skillId: string, cooldown: number) => void;
   
   fetchRoomData: (roomId: string) => Promise<void>;
 }
@@ -107,7 +107,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   trades: [],
   error: null,
   loading: false,
-  activeSkillUsed: false,
+  skillCooldowns: {},
 
   setUserName: (name: string) => {
     localStorage.setItem('cotyphu_user_name', name);
@@ -463,13 +463,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
         p_user_id: get().userId
       });
       if (error) throw error;
+      
+      // Giảm thời gian hồi chiêu của các kỹ năng cục bộ sau lượt đi
+      const cooldowns = { ...get().skillCooldowns };
+      for (const key in cooldowns) {
+        if (cooldowns[key] > 0) {
+          cooldowns[key] -= 1;
+        }
+      }
+      set({ skillCooldowns: cooldowns });
     } catch (err: any) {
       set({ error: err.message });
     }
   },
 
-  activateActiveSkill: () => {
-    set({ activeSkillUsed: true });
+  castActiveSkill: (skillId: string, cooldown: number) => {
+    const cooldowns = { ...get().skillCooldowns };
+    cooldowns[skillId] = cooldown;
+    set({ skillCooldowns: cooldowns });
   },
 
   fetchRoomData: async (roomId: string) => {

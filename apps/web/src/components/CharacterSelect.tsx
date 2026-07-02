@@ -146,20 +146,18 @@ export const CharacterSelect: React.FC<CharacterSelectProps> = ({
                   </div>
                 </div>
 
-                {/* Active */}
-                <div className="flex gap-2">
-                  <span className="text-sm shrink-0" title="Kỹ năng chủ động (Active)">
-                    {char.activeIcon}
-                  </span>
-                  <div>
-                    <div className="font-bold text-gold-300 flex items-center gap-1">
-                      <span>{char.activeName}</span>
-                      <span className="text-[8px] bg-gold-500/20 px-1 rounded text-gold-200 font-normal">Kích hoạt</span>
+                {/* Active Skills */}
+                <div className="flex flex-col gap-1.5 border-t border-white/5 pt-1.5">
+                  <span className="text-[8px] bg-gold-500/20 px-1.5 py-0.2 rounded text-gold-200 font-black w-max uppercase tracking-wider">Kích hoạt</span>
+                  {char.skills.map((skill) => (
+                    <div key={skill.id} className="flex gap-1.5 items-start mt-0.5">
+                      <span className="text-xs shrink-0">{skill.icon}</span>
+                      <div>
+                        <div className="font-bold text-gold-300 text-[10px] leading-tight">{skill.name}</div>
+                        <p className="text-[9px] text-slate-400 leading-normal mt-0.5">{skill.desc}</p>
+                      </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">
-                      {char.activeDesc}
-                    </p>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>

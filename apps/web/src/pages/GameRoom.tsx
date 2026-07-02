@@ -7,7 +7,6 @@ import { PlayerPanel } from '../components/PlayerPanel';
 import { DiceRoller } from '../components/DiceRoller';
 import { ActionModal } from '../components/ActionModal';
 import { TradeModal } from '../components/TradeModal';
-import { GameLog } from '../components/GameLog';
 import { ResultModal } from '../components/ResultModal';
 import { SkillButton } from '../components/SkillButton';
 import { getCharacterById } from '../data/characters';
@@ -52,18 +51,17 @@ export const GameRoom: React.FC = () => {
     buildHouse,
     sellHouse,
     mortgageProperty,
-    activeSkillUsed,
-    activateActiveSkill,
+    skillCooldowns,
+    castActiveSkill,
   } = useGameStore();
 
   const [showTradeForm, setShowTradeForm] = useState(false);
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
-  
-  // Hovered tile index for displaying details card in the center of the board
   const [hoveredTileIndex, setHoveredTileIndex] = useState<number | null>(null);
-
-  // Turn Timer State: 30 seconds count down
   const [timeLeft, setTimeLeft] = useState(30);
+
+  // 3D Active Skill VFX state
+  const [activeVfx, setActiveVfx] = useState<'fist' | 'beam' | 'shield' | null>(null);
 
   const isLobby = room?.status === 'WAITING';
   const activePlayerIdx = gameState?.current_turn_index ?? 0;
@@ -98,6 +96,23 @@ export const GameRoom: React.FC = () => {
       }
     }
   }, [gameState, rollDice, endTurn, payRent, payTax, drawCard, skipBuy, userId]);
+
+  // 1. Tự động kết thúc lượt khi di chuyển xong hoặc mua nhà xong (Action/End phase)
+  useEffect(() => {
+    if (!isMyTurn || isLobby || !gameState || gameState.winner_id) return;
+    
+    if (gameState.turn_phase === 'action' || gameState.turn_phase === 'end') {
+      // Đợi 1.5 giây để nhìn rõ kết quả rồi tự động kết thúc lượt đi
+      const timer = setTimeout(() => {
+        const myPlayer = gameState.players[gameState.current_turn_index];
+        // Chỉ tự động kết thúc lượt nếu tiền hiện tại không bị âm
+        if (myPlayer && myPlayer.cash >= 0) {
+          endTurn();
+        }
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState?.turn_phase, isMyTurn, isLobby, gameState, endTurn]);
 
   // Reset timer khi đổi lượt hoặc đổi phase
   useEffect(() => {
@@ -145,11 +160,34 @@ export const GameRoom: React.FC = () => {
     await proposeTrade(receiverId, proposerCash, proposerProps, receiverCash, receiverProps);
   };
 
-  const handleUseSkill = () => {
+  // Kích hoạt Kỹ Năng 3D Tuyệt Chiêu
+  const handleUseSkill = (skillId: string, cooldown: number, vfx: 'fist' | 'beam' | 'shield') => {
     const char = getCharacterById(myCharacterId);
-    activateActiveSkill();
-    alert(`⚡ Đã kích hoạt kỹ năng chủ động "${char.activeName}" của ${char.name}!\nHiệu ứng: ${char.activeDesc}`);
+    const skill = char.skills.find(s => s.id === skillId);
+    if (!skill) return;
+
+    // Kích hoạt hiệu ứng visual 3D trên màn hình
+    setActiveVfx(vfx);
+    castActiveSkill(skillId, cooldown);
+
+    // Xóa hiệu ứng sau 1.8s
+    setTimeout(() => {
+      setActiveVfx(null);
+    }, 1800);
   };
+
+  // Dự đoán các ô có thể đi đến tương ứng với xúc xắc (2 - 12)
+  const rollPredictions: Record<number, number[]> = {};
+  if (isMyTurn && gameState?.turn_phase === 'roll' && myPlayerInGame) {
+    const currentPos = myPlayerInGame.position;
+    for (let roll = 2; roll <= 12; roll++) {
+      const targetIdx = (currentPos + roll) % 40;
+      if (!rollPredictions[targetIdx]) {
+        rollPredictions[targetIdx] = [];
+      }
+      rollPredictions[targetIdx].push(roll);
+    }
+  }
 
   if (isLobby) {
     const lobbyPlayers = players.map((p) => ({
@@ -184,7 +222,6 @@ export const GameRoom: React.FC = () => {
   const selectedTile = selectedTileIndex !== null ? gameState.board[selectedTileIndex] : null;
   const isOwnerOfSelected = selectedTile?.ownerId === userId;
   
-  // Lấy dữ liệu ô đang di chuột lên
   const hoveredTile = hoveredTileIndex !== null ? gameState.board[hoveredTileIndex] : null;
   const hoveredTileOwner = hoveredTile?.ownerId ? gameState.players.find(p => p.userId === hoveredTile.ownerId) : null;
 
@@ -198,7 +235,46 @@ export const GameRoom: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b1329] p-4 text-white flex flex-col md:flex-row items-center justify-center gap-6 select-none">
+    <div className="min-h-screen bg-[#0b1329] p-4 text-white flex flex-col md:flex-row items-center justify-center gap-6 select-none relative overflow-hidden">
+      
+      {/* ========================================== */}
+      {/* 3D ACTIVE SKILL VFX OVERLAY REALTIME */}
+      {/* ========================================== */}
+      {activeVfx && (
+        <div className="absolute inset-0 bg-black/40 z-50 flex items-center justify-center pointer-events-none transition-all duration-300">
+          {activeVfx === 'fist' && (
+            <div className="animate-bounce flex flex-col items-center justify-center">
+              <span className="text-8xl md:text-9xl drop-shadow-[0_10px_20px_rgba(239,68,68,0.7)] animate-pulse">👊</span>
+              <span className="text-xl md:text-2xl font-black text-rose-500 tracking-wider bg-black/85 px-4 py-1.5 rounded-full border border-rose-500 mt-4 shadow-lg animate-fade-in uppercase">
+                THIẾT LONG QUYỀN!
+              </span>
+            </div>
+          )}
+          
+          {activeVfx === 'beam' && (
+            <div className="flex flex-col items-center justify-center">
+              <div className="flex gap-2 text-5xl md:text-7xl animate-pulse">
+                <span>💸</span><span>🪙</span><span>💸</span><span>🪙</span>
+              </div>
+              <span className="text-xl md:text-2xl font-black text-amber-400 tracking-wider bg-black/85 px-4 py-1.5 rounded-full border border-amber-400 mt-4 shadow-lg animate-bounce uppercase">
+                TINH TÚ CHIÊU TÀI!
+              </span>
+            </div>
+          )}
+          
+          {activeVfx === 'shield' && (
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-40 h-40 rounded-full border-4 border-sky-400 bg-sky-500/20 shadow-[0_0_50px_#0ea5e9] flex items-center justify-center animate-ping">
+                <span className="text-6xl text-sky-300">🛡️</span>
+              </div>
+              <span className="text-xl md:text-2xl font-black text-sky-400 tracking-wider bg-black/85 px-4 py-1.5 rounded-full border border-sky-400 mt-4 shadow-lg animate-fade-in uppercase">
+                KẾT GIỚI BẢO HỘ!
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       <PlayerPanel
         players={gameState.players}
         activePlayerIndex={gameState.current_turn_index}
@@ -226,6 +302,8 @@ export const GameRoom: React.FC = () => {
           players={gameState.players}
           selectedTileIndex={selectedTileIndex}
           onTileHover={setHoveredTileIndex}
+          activePlayerIndex={gameState.current_turn_index}
+          rollPredictions={rollPredictions} // Pass predictions here
           onTileClick={(idx) => {
             const tile = gameState.board[idx];
             if (tile.ownerId === userId) {
@@ -389,12 +467,12 @@ export const GameRoom: React.FC = () => {
                     <span>{timeLeft}s</span>
                   </div>
 
-                  {/* Skill Button for current client */}
+                  {/* 3 Active Skill Buttons for current client */}
                   {!isLobby && myPlayerInGame && (
                     <SkillButton
                       characterId={myCharacterId}
-                      isActiveSkillUsed={activeSkillUsed}
-                      onUseActiveSkill={handleUseSkill}
+                      skillCooldowns={skillCooldowns}
+                      onCastSkill={handleUseSkill}
                       disabled={!isMyTurn || gameState.winner_id !== null}
                     />
                   )}
@@ -485,8 +563,6 @@ export const GameRoom: React.FC = () => {
               </div>
             </div>
           )}
-
-          <GameLog logs={gameState.log || []} />
         </Board>
       </div>
 
