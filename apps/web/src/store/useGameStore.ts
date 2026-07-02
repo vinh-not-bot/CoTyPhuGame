@@ -1,11 +1,23 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { GameState, Room, Trade } from '../types';
 
 export const getUserId = (): string => {
   let uid = localStorage.getItem('cotyphu_user_id');
-  if (!uid) {
-    uid = 'user_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  // Regex kiểm tra xem UUID có đúng định dạng chuẩn hay không (8-4-4-4-12 ký tự hex)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  
+  if (!uid || !uuidRegex.test(uid)) {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      uid = crypto.randomUUID();
+    } else {
+      // Fallback sinh mã UUID v4 nếu trình duyệt cũ không hỗ trợ
+      uid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
     localStorage.setItem('cotyphu_user_id', uid);
   }
   return uid;
