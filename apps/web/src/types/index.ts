@@ -1,4 +1,4 @@
-﻿export interface Player {
+export interface Player {
   userId: string;
   name: string;
   avatarColor: string;
@@ -9,6 +9,7 @@
   isBankrupt: boolean;
   doubleRollCount: number;
   jailFreeCards?: number;
+  characterId?: string;
 }
 
 export interface Tile {
@@ -43,6 +44,7 @@ export interface Room {
   room_code: string;
   host_id: string;
   status: 'WAITING' | 'PLAYING' | 'FINISHED';
+  is_public: boolean;
   settings: {
     startMoney: number;
     maxPlayers: number;

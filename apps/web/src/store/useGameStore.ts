@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { GameState, Room, Trade } from '../types';
+import { DEFAULT_CHARACTER_ID } from '../data/characters';
 
 export const getUserId = (): string => {
   let uid = localStorage.getItem('cotyphu_user_id');
@@ -42,23 +43,31 @@ export const getUserAvatarColor = (): string => {
   return color;
 };
 
+export const getUserCharacter = (): string => {
+  return localStorage.getItem('cotyphu_character') || DEFAULT_CHARACTER_ID;
+};
+
 interface GameStore {
   userId: string;
   userName: string;
   userAvatarColor: string;
+  selectedCharacter: string;
   room: Room | null;
-  players: { userId: string; display_name: string; avatar_color: string; turn_order: number; is_host: boolean }[];
+  players: { userId: string; display_name: string; avatar_color: string; turn_order: number; is_host: boolean; character_id?: string }[];
   gameState: GameState | null;
   trades: Trade[];
   error: string | null;
   loading: boolean;
+  activeSkillUsed: boolean;
   
   setUserName: (name: string) => void;
   setUserAvatarColor: (color: string) => void;
+  setSelectedCharacter: (id: string) => void;
   setError: (err: string | null) => void;
   
-  createRoom: (maxPlayers: number, startMoney: number) => Promise<void>;
+  createRoom: (maxPlayers: number, startMoney: number, isPublic?: boolean) => Promise<void>;
   joinRoom: (roomCode: string) => Promise<void>;
+  quickJoin: () => Promise<void>;
   startGame: () => Promise<void>;
   rollDice: () => Promise<void>;
   buyProperty: (tileIndex: number) => Promise<void>;
@@ -82,6 +91,7 @@ interface GameStore {
   rejectTrade: (tradeId: string) => Promise<void>;
   declareBankruptcy: () => Promise<void>;
   endTurn: () => Promise<void>;
+  activateActiveSkill: () => void;
   
   fetchRoomData: (roomId: string) => Promise<void>;
 }
@@ -90,12 +100,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   userId: getUserId(),
   userName: getUserName(),
   userAvatarColor: getUserAvatarColor(),
+  selectedCharacter: getUserCharacter(),
   room: null,
   players: [],
   gameState: null,
   trades: [],
   error: null,
   loading: false,
+  activeSkillUsed: false,
 
   setUserName: (name: string) => {
     localStorage.setItem('cotyphu_user_name', name);
@@ -107,20 +119,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ userAvatarColor: color });
   },
 
+  setSelectedCharacter: (id: string) => {
+    localStorage.setItem('cotyphu_character', id);
+    set({ selectedCharacter: id });
+  },
+
   setError: (err: string | null) => set({ error: err }),
 
-  createRoom: async (maxPlayers: number, startMoney: number) => {
+  createRoom: async (maxPlayers: number, startMoney: number, isPublic = false) => {
     set({ loading: true, error: null });
     try {
       const { data, error } = await supabase.rpc('create_room', {
         p_host_user_id: get().userId,
         p_host_name: get().userName,
-        p_settings: { maxPlayers, startMoney, freeParkingJackpot: false }
+        p_settings: { maxPlayers, startMoney, freeParkingJackpot: false },
+        p_is_public: isPublic
       });
 
       if (error) throw error;
       if (data && data.length > 0) {
         const { room_id } = data[0];
+        // Cập nhật character_id cho người chơi
+        await supabase
+          .from('room_players')
+          .update({ character_id: get().selectedCharacter, avatar_color: get().userAvatarColor })
+          .eq('room_id', room_id)
+          .eq('user_id', get().userId);
         await get().fetchRoomData(room_id);
       }
     } catch (err: any) {
@@ -137,7 +161,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         p_room_code: roomCode.trim().toUpperCase(),
         p_user_id: get().userId,
         p_display_name: get().userName,
-        p_avatar_color: get().userAvatarColor
+        p_avatar_color: get().userAvatarColor,
+        p_character_id: get().selectedCharacter
       });
 
       if (error) throw error;
@@ -146,6 +171,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     } catch (err: any) {
       set({ error: err.message || 'Lỗi khi vào phòng' });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  quickJoin: async () => {
+    set({ loading: true, error: null });
+    try {
+      const { data, error } = await supabase.rpc('quick_join', {
+        p_user_id: get().userId,
+        p_display_name: get().userName,
+        p_avatar_color: get().userAvatarColor,
+        p_character_id: get().selectedCharacter
+      });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const { room_id } = data[0];
+        await get().fetchRoomData(room_id);
+      }
+    } catch (err: any) {
+      set({ error: err.message || 'Lỗi khi tìm phòng nhanh' });
     } finally {
       set({ loading: false });
     }
@@ -419,6 +466,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } catch (err: any) {
       set({ error: err.message });
     }
+  },
+
+  activateActiveSkill: () => {
+    set({ activeSkillUsed: true });
   },
 
   fetchRoomData: async (roomId: string) => {

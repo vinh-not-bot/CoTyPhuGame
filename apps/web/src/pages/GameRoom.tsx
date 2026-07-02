@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { useRealtimeRoom } from '../hooks/useRealtimeRoom';
 import { LobbyRoom } from '../components/LobbyRoom';
@@ -9,6 +9,8 @@ import { ActionModal } from '../components/ActionModal';
 import { TradeModal } from '../components/TradeModal';
 import { GameLog } from '../components/GameLog';
 import { ResultModal } from '../components/ResultModal';
+import { SkillButton } from '../components/SkillButton';
+import { getCharacterById } from '../data/characters';
 
 export const GameRoom: React.FC = () => {
   useRealtimeRoom();
@@ -39,6 +41,8 @@ export const GameRoom: React.FC = () => {
     buildHouse,
     sellHouse,
     mortgageProperty,
+    activeSkillUsed,
+    activateActiveSkill,
   } = useGameStore();
 
   const [showTradeForm, setShowTradeForm] = useState(false);
@@ -50,6 +54,10 @@ export const GameRoom: React.FC = () => {
   const activePlayerIdx = gameState?.current_turn_index ?? 0;
   const activePlayer = gameState?.players[activePlayerIdx];
   const isMyTurn = activePlayer?.userId === userId;
+
+  // Lấy nhân vật của tôi
+  const myPlayerInGame = gameState?.players.find((p) => p.userId === userId);
+  const myCharacterId = myPlayerInGame?.characterId || 'huan_hoa_hong';
 
   const handleLeaveRoom = () => {
     localStorage.removeItem('cotyphu_room_id');
@@ -70,12 +78,19 @@ export const GameRoom: React.FC = () => {
     await proposeTrade(receiverId, proposerCash, proposerProps, receiverCash, receiverProps);
   };
 
+  const handleUseSkill = () => {
+    const char = getCharacterById(myCharacterId);
+    activateActiveSkill();
+    alert(`⚡ Đã kích hoạt kỹ năng chủ động "${char.activeName}" của ${char.name}!\nHiệu ứng: ${char.activeDesc}`);
+  };
+
   if (isLobby) {
     const lobbyPlayers = players.map((p) => ({
       userId: p.userId,
       display_name: p.display_name,
       avatar_color: p.avatar_color || '#3b82f6',
       is_host: p.is_host,
+      character_id: p.character_id,
     }));
 
     return (
@@ -203,20 +218,36 @@ export const GameRoom: React.FC = () => {
             </div>
           ) : (
             <div className="flex-1 flex flex-col justify-between my-1 min-h-[140px]">
-              <div className="text-center">
-                <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">
-                  Trận Đấu Đang Diễn Ra
-                </span>
-                <h2 className="text-sm font-bold text-white mt-1">
-                  {isMyTurn ? (
-                    <span className="text-green-400">Lượt đi của bạn!</span>
-                  ) : (
-                    <span>Lượt của: <span className="text-gold-300">{activePlayer?.name}</span></span>
-                  )}
-                </h2>
+              {/* Game Room Header & SkillButton placement */}
+              <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                <div className="text-left">
+                  <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">
+                    Trận Đấu Đang Diễn Ra
+                  </span>
+                  <h2 className="text-sm font-bold text-white mt-0.5">
+                    {isMyTurn ? (
+                      <span className="text-green-400 animate-pulse">Lượt đi của bạn!</span>
+                    ) : (
+                      <span>Lượt của: <span className="text-gold-300">{activePlayer?.name}</span></span>
+                    )}
+                  </h2>
+                </div>
+
+                {/* Skill Button for current client */}
+                {!isLobby && myPlayerInGame && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-slate-400 font-bold">Kỹ năng:</span>
+                    <SkillButton
+                      characterId={myCharacterId}
+                      isActiveSkillUsed={activeSkillUsed}
+                      onUseActiveSkill={handleUseSkill}
+                      disabled={!isMyTurn || gameState.winner_id !== null}
+                    />
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center justify-center py-2">
+              <div className="flex items-center justify-center py-2 flex-grow">
                 {gameState.turn_phase === 'roll' && (
                   <div className="flex flex-col items-center gap-2">
                     {isMyTurn && activePlayer?.inJail && (
@@ -280,7 +311,7 @@ export const GameRoom: React.FC = () => {
                         disabled={(activePlayer?.cash ?? 0) < 0}
                         className={`px-5 py-1.5 rounded text-white font-bold text-xs shadow-md transition-all active:scale-95
                           ${(activePlayer?.cash ?? 0) >= 0
-                            ? 'bg-green-600 hover:bg-green-700'
+                            ? 'bg-green-600 hover:bg-green-700 shadow-[0_0_12px_rgba(22,163,74,0.4)]'
                             : 'bg-slate-600 opacity-50 cursor-not-allowed'
                           }`}
                       >
