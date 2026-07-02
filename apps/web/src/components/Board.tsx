@@ -10,7 +10,7 @@ interface BoardProps {
   selectableTileIndices?: number[];
   onTileHover?: (index: number | null) => void;
   activePlayerIndex?: number;
-  rollPredictions?: Record<number, number[]>; // Nhận kết quả dự đoán xúc xắc từ GameRoom
+  rollPredictions?: Record<number, number[]>;
   children?: React.ReactNode;
 }
 
@@ -26,7 +26,15 @@ export const getTileGridPosition = (index: number) => {
   return { gridRow: 1, gridColumn: 1 };
 };
 
-type ViewMode = '2D' | '3D' | '3P';
+// Tính toán vị trí tương đối (%) của tâm ô cờ phục vụ cho Transform Origin trong góc nhìn thứ nhất (1P)
+const getTilePercentPosition = (index: number) => {
+  const pos = getTileGridPosition(index);
+  const x = ((pos.gridColumn - 0.5) / 11) * 100;
+  const y = ((pos.gridRow - 0.5) / 11) * 100;
+  return `${x}% ${y}%`;
+};
+
+type ViewMode = '2D' | '3D' | '3P' | '1P';
 
 export const Board: React.FC<BoardProps> = ({
   board,
@@ -40,34 +48,57 @@ export const Board: React.FC<BoardProps> = ({
   children,
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('3D');
+  
+  // Góc quay thủ công trong chế độ 3D tự do
   const [tilt, setTilt] = useState(50);
   const [rotation, setRotation] = useState(-30);
+
+  // Góc quay tự động trong các chế độ bám sát
   const [autoTilt, setAutoTilt] = useState(60);
   const [autoRotation, setAutoRotation] = useState(0);
+  const [scale, setScale] = useState(1);
+  const [origin, setOrigin] = useState('50% 50%');
 
+  // Cập nhật camera bám sát theo vị trí người chơi hiện tại (3P hoặc 1P)
   useEffect(() => {
-    if (viewMode !== '3P') return;
+    if (viewMode !== '3P' && viewMode !== '1P') {
+      setScale(1);
+      setOrigin('50% 50%');
+      return;
+    }
 
     const currentPlayer = players[activePlayerIndex];
     if (!currentPlayer || currentPlayer.isBankrupt) return;
 
     const pos = currentPlayer.position;
-
-    if (pos >= 0 && pos < 10) {
-      setAutoRotation(0);
-    } else if (pos >= 10 && pos < 20) {
-      setAutoRotation(90);
-    } else if (pos >= 20 && pos < 30) {
-      setAutoRotation(180);
-    } else if (pos >= 30 && pos < 40) {
-      setAutoRotation(-90);
-    }
     
-    setAutoTilt(62);
+    // Đặt Transform Origin vào đúng tâm ô của người chơi hiện tại
+    setOrigin(getTilePercentPosition(pos));
+
+    // Tính toán góc xoay camera từ phía sau lưng quân cờ
+    if (pos >= 0 && pos < 10) {
+      setAutoRotation(0); // Cạnh dưới nhìn lên
+    } else if (pos >= 10 && pos < 20) {
+      setAutoRotation(90); // Cạnh trái nhìn ngang
+    } else if (pos >= 20 && pos < 30) {
+      setAutoRotation(180); // Cạnh trên nhìn xuống
+    } else if (pos >= 30 && pos < 40) {
+      setAutoRotation(-90); // Cạnh phải nhìn sang
+    }
+
+    if (viewMode === '1P') {
+      // Góc nhìn thứ nhất (1P): Nghiêng sát mặt đất, phóng to cực đại để nhìn dọc đường phố
+      setAutoTilt(78);
+      setScale(2.5);
+    } else {
+      // Góc nhìn thứ ba (3P): Cao hơn chút để nhìn bao quát
+      setAutoTilt(60);
+      setScale(1.2);
+    }
   }, [viewMode, activePlayerIndex, players]);
 
-  const finalTilt = viewMode === '2D' ? 0 : viewMode === '3P' ? autoTilt : tilt;
-  const finalRotation = viewMode === '2D' ? 0 : viewMode === '3P' ? autoRotation : rotation;
+  const finalTilt = viewMode === '2D' ? 0 : (viewMode === '3P' || viewMode === '1P') ? autoTilt : tilt;
+  const finalRotation = viewMode === '2D' ? 0 : (viewMode === '3P' || viewMode === '1P') ? autoRotation : rotation;
   const is3D = viewMode !== '2D';
 
   return (
@@ -77,18 +108,18 @@ export const Board: React.FC<BoardProps> = ({
         <div className="flex items-center gap-1.5">
           <span className="font-extrabold text-[10px] text-slate-400 uppercase tracking-wider">Góc nhìn:</span>
           <div className="flex bg-slate-800 p-0.5 rounded-lg border border-white/5">
-            {(['2D', '3D', '3P'] as ViewMode[]).map((mode) => (
+            {(['2D', '3D', '3P', '1P'] as ViewMode[]).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 onClick={() => setViewMode(mode)}
-                className={`px-3 py-1 rounded-md font-black text-[9px] uppercase transition-all duration-200 active:scale-95 cursor-pointer
+                className={`px-2.5 py-1 rounded-md font-black text-[9px] uppercase transition-all duration-200 active:scale-95 cursor-pointer
                   ${viewMode === mode 
                     ? 'bg-emerald-600 text-white shadow-md' 
                     : 'text-slate-400 hover:text-white'
                   }`}
               >
-                {mode === '2D' ? '2D' : mode === '3D' ? '3D' : '3P'}
+                {mode === '2D' ? '2D' : mode === '3D' ? '3D Tự Do' : mode === '3P' ? '3P Bám Lượt' : '1P Nhập Vai'}
               </button>
             ))}
           </div>
@@ -121,9 +152,9 @@ export const Board: React.FC<BoardProps> = ({
           </div>
         )}
 
-        {viewMode === '3P' && (
+        {(viewMode === '3P' || viewMode === '1P') && (
           <div className="text-[9px] text-emerald-400 font-bold animate-pulse">
-            🎥 Camera bám sát sau lưng người chơi đang đi lượt
+            🎥 Camera {viewMode === '1P' ? 'Góc Nhìn Thứ Nhất (1P) đường phố' : 'Góc Nhìn Thứ Ba (3P) bám lượt'}
           </div>
         )}
       </div>
@@ -137,11 +168,12 @@ export const Board: React.FC<BoardProps> = ({
         }}
       >
         <div 
-          className="w-full aspect-square bg-[#cbd5e1] border-4 border-slate-300 rounded-3xl p-1 transition-all duration-500 ease-out"
+          className="w-full aspect-square bg-[#cbd5e1] border-4 border-slate-300 rounded-3xl p-1 transition-all duration-700 ease-out"
           style={{
             transformStyle: is3D ? 'preserve-3d' : 'flat',
+            transformOrigin: is3D ? origin : '50% 50%',
             transform: is3D 
-              ? `rotateX(${finalTilt}deg) rotateZ(${finalRotation}deg)` 
+              ? `rotateX(${finalTilt}deg) rotateZ(${finalRotation}deg) scale(${scale})` 
               : 'none',
             boxShadow: is3D 
               ? '0 30px 60px rgba(0,0,0,0.65), 0 12px 24px rgba(0,0,0,0.45), inset 0 0 15px rgba(255,255,255,0.2)' 
@@ -177,7 +209,7 @@ export const Board: React.FC<BoardProps> = ({
                     tilt={finalTilt}
                     rotation={finalRotation}
                     owner={owner}
-                    predictionRolls={rollPredictions[tile.index] || []} // Truyền dự báo số điểm xúc xắc
+                    predictionRolls={rollPredictions[tile.index] || []}
                   />
                 </div>
               );

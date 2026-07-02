@@ -25,10 +25,8 @@ const colorMap: Record<string, string> = {
   navy: 'bg-[#000080]',       // Navy
 };
 
-// Định nghĩa màu sắc kiến trúc 3D riêng biệt cho từng khu vực/nhóm đất
 const get3DHouseStyles = (colorGroup: string, isHotel: boolean) => {
   if (isHotel) {
-    // Khách sạn hạng sang thiết kế độc bản theo khu vực
     switch (colorGroup) {
       case 'brown': return { top: 'bg-amber-800', front: 'bg-amber-900', side: 'bg-amber-950', border: 'border-amber-950' };
       case 'sky': return { top: 'bg-sky-400', front: 'bg-sky-500', side: 'bg-sky-600', border: 'border-sky-700' };
@@ -42,23 +40,22 @@ const get3DHouseStyles = (colorGroup: string, isHotel: boolean) => {
     }
   }
 
-  // Nhà thường (Cấp 1-4) mang màu sắc/kiểu dáng đặc trưng của từng khu
   switch (colorGroup) {
-    case 'brown': // Nhà gỗ mộc mạc cổ kính
+    case 'brown':
       return { top: 'bg-[#92400e]', front: 'bg-[#b45309]', side: 'bg-[#78350f]', border: 'border-[#451a03]' };
-    case 'sky': // Nhà ven biển hiện đại màu xanh da trời
+    case 'sky':
       return { top: 'bg-sky-300', front: 'bg-sky-400', side: 'bg-sky-500', border: 'border-sky-600' };
-    case 'pink': // Nhà cổ tích ngọt ngào màu hồng phấn
+    case 'pink':
       return { top: 'bg-pink-300', front: 'bg-pink-400', side: 'bg-pink-500', border: 'border-pink-600' };
-    case 'orange': // Nhà gạch nung truyền thống màu cam đất
+    case 'orange':
       return { top: 'bg-orange-400', front: 'bg-orange-500', side: 'bg-orange-600', border: 'border-orange-700' };
-    case 'red': // Biệt thự mái đỏ cao cấp
+    case 'red':
       return { top: 'bg-red-400', front: 'bg-red-500', side: 'bg-red-600', border: 'border-red-755' };
-    case 'yellow': // Biệt thự màu kem nắng ấm áp
+    case 'yellow':
       return { top: 'bg-yellow-250', front: 'bg-yellow-300', side: 'bg-yellow-400', border: 'border-yellow-500' };
-    case 'green': // Nhà sinh thái lá xanh mát mẻ
+    case 'green':
       return { top: 'bg-emerald-400', front: 'bg-emerald-500', side: 'bg-emerald-600', border: 'border-emerald-700' };
-    case 'navy': // Penhouse kính cao cấp màu xanh biển sâu
+    case 'navy':
       return { top: 'bg-blue-600', front: 'bg-blue-700', side: 'bg-slate-800', border: 'border-slate-900' };
     default:
       return { top: 'bg-slate-300', front: 'bg-slate-400', side: 'bg-slate-500', border: 'border-slate-600' };
@@ -97,11 +94,8 @@ export const Tile: React.FC<TileProps> = ({
       );
     }
 
-    // Chế độ 3D: Dựng đứng khối lập thể 3D thực thụ
     const isHotel = tile.houses === 5;
     const houseCount = isHotel ? 1 : tile.houses;
-    
-    // Lấy phong cách màu sắc 3D riêng cho từng khu đất
     const colorClass = get3DHouseStyles(tile.colorGroup || 'default', isHotel);
 
     return (
@@ -123,7 +117,7 @@ export const Tile: React.FC<TileProps> = ({
                 transform: 'translateZ(1px)',
               }}
             >
-              {/* Mặt trên (Mái nhà) */}
+              {/* Mặt trên */}
               <div 
                 className={`absolute inset-0 ${colorClass.top} border ${colorClass.border}`} 
                 style={{ transform: `translateZ(${size.d}px)` }}
@@ -199,11 +193,11 @@ export const Tile: React.FC<TileProps> = ({
         borderColor: tile.ownerId && owner ? owner.avatarColor : '#e2e8f0',
       }}
     >
-      {/* Landing Prediction Badge (Hiển thị dự báo số điểm cần xúc xắc) */}
+      {/* Landing Prediction Badge (Hiển thị dự báo số điểm cần xúc xắc - tinh gọn cực tiểu) */}
       {predictionRolls.length > 0 && (
         <div 
           style={is3D ? { transform: `rotateX(${-tilt}deg) rotateZ(${-rotation}deg) translateZ(18px)`, transformStyle: 'preserve-3d' } : {}}
-          className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-amber-500 to-orange-500 border border-white text-slate-950 text-[7px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-lg z-40 animate-pulse"
+          className="absolute -top-1 -right-1 bg-amber-500 border border-white text-slate-950 text-[6.5px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-md z-40 animate-pulse"
           title={`Tung được ${predictionRolls.join(', ')} để đi vào ô này`}
         >
           {predictionRolls.join('/')}
@@ -234,20 +228,17 @@ export const Tile: React.FC<TileProps> = ({
         </span>
       </div>
 
-      {/* Owner & Price Info */}
+      {/* Owner & Price Info (Loại bỏ nhãn chữ đã mua giúp giảm rối mắt chữ) */}
       {!isCorner && (
         <div 
           style={is3D ? { transform: 'translateZ(1.5px)' } : {}}
           className="mt-0.5 text-[8px] font-extrabold flex flex-col items-center"
         >
           {tile.ownerId && owner ? (
-            <span
-              className="px-1 py-0.2 rounded text-[6px] text-white font-black uppercase tracking-wider shadow-sm truncate max-w-[48px]"
-              style={{ backgroundColor: tile.mortgaged ? '#64748b' : owner.avatarColor }}
-              title={tile.mortgaged ? `Thế chấp (Chủ: ${owner.name})` : `Chủ sở hữu: ${owner.name}`}
-            >
-              {tile.mortgaged ? 'Thế chấp' : owner.name.substring(0, 5)}
-            </span>
+            /* Khi đã mua: Không hiển thị chữ, viền màu ô cờ đã là chỉ thị sở hữu hoàn hảo */
+            tile.mortgaged ? (
+              <span className="px-1 py-0.2 rounded text-[5px] bg-slate-400 text-white font-black uppercase">TC</span>
+            ) : null
           ) : (
             tile.price > 0 && <span className="text-emerald-700">${tile.price}</span>
           )}
