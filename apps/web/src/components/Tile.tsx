@@ -40,12 +40,12 @@ const get3DHouseStyles = (colorGroup: string, isHotel: boolean) => {
   if (isHotel) {
     switch (colorGroup) {
       case 'brown': return { top: 'bg-amber-800', front: 'bg-amber-900', side: 'bg-amber-950', border: 'border-amber-950' };
-      case 'sky': return { top: 'bg-sky-400', front: 'bg-sky-500', side: 'bg-sky-600', border: 'border-sky-700' };
-      case 'pink': return { top: 'bg-pink-400', front: 'bg-pink-500', side: 'bg-pink-600', border: 'border-pink-700' };
-      case 'orange': return { top: 'bg-orange-500', front: 'bg-orange-600', side: 'bg-orange-700', border: 'border-orange-850' };
-      case 'red': return { top: 'bg-red-600', front: 'bg-red-700', side: 'bg-red-800', border: 'border-red-900' };
-      case 'yellow': return { top: 'bg-yellow-400', front: 'bg-yellow-500', side: 'bg-yellow-600', border: 'border-yellow-700' };
-      case 'green': return { top: 'bg-green-700', front: 'bg-green-800', side: 'bg-green-900', border: 'border-green-950' };
+      case 'sky': return { top: 'bg-sky-450', front: 'bg-sky-500', side: 'bg-sky-650', border: 'border-sky-700' };
+      case 'pink': return { top: 'bg-pink-450', front: 'bg-pink-500', side: 'bg-pink-650', border: 'border-pink-700' };
+      case 'orange': return { top: 'bg-orange-550', front: 'bg-orange-600', side: 'bg-orange-700', border: 'border-orange-850' };
+      case 'red': return { top: 'bg-red-650', front: 'bg-red-700', side: 'bg-red-800', border: 'border-red-900' };
+      case 'yellow': return { top: 'bg-yellow-450', front: 'bg-yellow-500', side: 'bg-yellow-650', border: 'border-yellow-700' };
+      case 'green': return { top: 'bg-green-750', front: 'bg-green-800', side: 'bg-green-900', border: 'border-green-950' };
       case 'navy': return { top: 'bg-blue-800', front: 'bg-blue-900', side: 'bg-slate-900', border: 'border-slate-950' };
       default: return { top: 'bg-rose-500', front: 'bg-rose-600', side: 'bg-rose-700', border: 'border-rose-800' };
     }
@@ -118,12 +118,12 @@ export const Tile: React.FC<TileProps> = ({
         className="absolute top-0.5 left-1/2 -translate-x-1/2 flex gap-1 justify-center z-15"
       >
         {Array.from({ length: houseCount }).map((_, i) => {
-          const size = isHotel ? { w: 10, h: 10, d: 14 } : { w: 5, h: 5, d: 7 };
+          const size = isHotel ? { w: 10, h: 10, d: 14 } : { w: 6, h: 6, d: 8 };
 
           return (
             <div 
               key={i} 
-              className="relative transition-transform duration-300 shadow-lg"
+              className="relative transition-transform duration-300 shadow-md"
               style={{
                 width: `${size.w}px`,
                 height: `${size.h}px`,
@@ -131,22 +131,51 @@ export const Tile: React.FC<TileProps> = ({
                 transform: 'translateZ(1px)',
               }}
             >
-              {/* Mặt trên */}
+              {/* 1. MÁI NHÀ 3D MÁI THÁI / MÁI DỐC (Gabled Slanted Roof) */}
+              {isHotel ? (
+                /* Khách sạn: Mái phẳng lớn sang trọng */
+                <div 
+                  className={`absolute inset-0 ${colorClass.top} border ${colorClass.border}`} 
+                  style={{ transform: `translateZ(${size.d}px)` }}
+                />
+              ) : (
+                /* Nhà thường: Mái Thái dốc nhọn cực kỳ chi tiết */
+                <div style={{ transformStyle: 'preserve-3d' }} className="absolute inset-0">
+                  {/* Mái dốc bên trái */}
+                  <div 
+                    className={`absolute top-0 bottom-0 left-0 w-[55%] ${colorClass.top} border-y border-l ${colorClass.border}`}
+                    style={{
+                      transformOrigin: 'left center',
+                      transform: `translateZ(${size.d}px) rotateY(-22deg)`,
+                    }}
+                  />
+                  {/* Mái dốc bên phải */}
+                  <div 
+                    className={`absolute top-0 bottom-0 right-0 w-[55%] ${colorClass.top} border-y border-r ${colorClass.border}`}
+                    style={{
+                      transformOrigin: 'right center',
+                      transform: `translateZ(${size.d}px) rotateY(22deg)`,
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* 2. MẶT TRƯỚC (Có 2 ô cửa sổ phát sáng lung linh) */}
               <div 
-                className={`absolute inset-0 ${colorClass.top} border ${colorClass.border}`} 
-                style={{ transform: `translateZ(${size.d}px)` }}
-              />
-              {/* Mặt trước */}
-              <div 
-                className={`absolute inset-0 ${colorClass.front} border ${colorClass.border}`} 
+                className={`absolute inset-0 ${colorClass.front} border ${colorClass.border} flex items-center justify-around px-0.5`} 
                 style={{
                   height: `${size.d}px`,
                   transform: 'rotateX(-90deg)',
                   transformOrigin: 'bottom',
                   bottom: 0,
                 }}
-              />
-              {/* Mặt sau */}
+              >
+                {/* Cửa sổ phát sáng màu vàng */}
+                <div className="w-[1.2px] h-[1.2px] bg-yellow-200/90 rounded-[0.2px] shadow-[0_0_1.5px_#f59e0b] -translate-y-0.5" />
+                <div className="w-[1.2px] h-[1.2px] bg-yellow-200/90 rounded-[0.2px] shadow-[0_0_1.5px_#f59e0b] -translate-y-0.5" />
+              </div>
+
+              {/* 3. MẶT SAU */}
               <div 
                 className={`absolute inset-0 ${colorClass.front} border ${colorClass.border}`} 
                 style={{
@@ -156,26 +185,32 @@ export const Tile: React.FC<TileProps> = ({
                   top: 0,
                 }}
               />
-              {/* Mặt trái */}
+
+              {/* 4. MẶT BÊN TRÁI (Có 1 ô cửa sổ nhỏ) */}
               <div 
-                className={`absolute inset-0 ${colorClass.side} border ${colorClass.border}`} 
+                className={`absolute inset-0 ${colorClass.side} border ${colorClass.border} flex items-center justify-center`} 
                 style={{
                   width: `${size.d}px`,
                   transform: 'rotateY(-90deg)',
                   transformOrigin: 'left',
                   left: 0,
                 }}
-              />
-              {/* Mặt phải */}
+              >
+                <div className="w-[1.2px] h-[1.2px] bg-yellow-200/95 rounded-[0.2px] shadow-[0_0_1.5px_#f59e0b]" />
+              </div>
+
+              {/* 5. MẶT BÊN PHẢI (Có 1 ô cửa sổ nhỏ) */}
               <div 
-                className={`absolute inset-0 ${colorClass.side} border ${colorClass.border}`} 
+                className={`absolute inset-0 ${colorClass.side} border ${colorClass.border} flex items-center justify-center`} 
                 style={{
                   width: `${size.d}px`,
                   transform: 'rotateY(90deg)',
                   transformOrigin: 'right',
                   right: 0,
                 }}
-              />
+              >
+                <div className="w-[1.2px] h-[1.2px] bg-yellow-200/95 rounded-[0.2px] shadow-[0_0_1.5px_#f59e0b]" />
+              </div>
             </div>
           );
         })}
@@ -220,7 +255,7 @@ export const Tile: React.FC<TileProps> = ({
         </div>
       )}
 
-      {/* 3D FLOATING DETAILED TITLE DEED TOOLTIP (Khắc phục nhức mắt che màn hình) */}
+      {/* 3D FLOATING DETAILED TITLE DEED TOOLTIP */}
       {localHover && !isCorner && (
         <div 
           style={is3D ? { 

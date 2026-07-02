@@ -179,3 +179,22 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(16, 185, 129, 0.5);
 }
+
+/* ========= 3D STICKMAN WALK ANIMATIONS ========= */
+@keyframes swing-a {
+  0%, 100% { transform: rotateX(25deg); }
+  50% { transform: rotateX(-25deg); }
+}
+
+@keyframes swing-b {
+  0%, 100% { transform: rotateX(-25deg); }
+  50% { transform: rotateX(25deg); }
+}
+
+.animate-walk-left {
+  animation: swing-a 0.6s infinite ease-in-out;
+}
+
+.animate-walk-right {
+  animation: swing-b 0.6s infinite ease-in-out;
+}
